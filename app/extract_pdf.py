@@ -22,6 +22,11 @@ def extract_raw_text(filepath: str) -> str:
     return "\n".join(lines)
 
 
+def extract_text_from_pdf(filepath: str) -> str:
+    """提取 PDF 文本（别名，兼容 main.py 导入）"""
+    return extract_raw_text(filepath)
+
+
 def _merge_adjacent_blocks(blocks: list, max_gap: int = 2) -> list:
     """
     合并相邻的短块（处理报纸排版换行截断）。
@@ -39,8 +44,14 @@ def _merge_adjacent_blocks(blocks: list, max_gap: int = 2) -> list:
             nxt = blocks[j].strip()
             if not nxt:
                 break
+            # 章节标题模式（如"新技术："、"新药品："）：继续合并
+            title_enders = (":", "：")
+            if current and current[-1] in title_enders:
+                current = current + nxt
+                j += 1
+                continue
             # 如果当前块不以句号结尾，则合并（空格避免词语粘连）
-            if current and len(current) > 3 and current[-1] not in '。！？；…）)、》」':
+            elif current and len(current) > 3 and current[-1] not in '。！？；…）)、》」':
                 # 但如果下一块是短标题（如栏目名），不合并
                 if len(nxt) < 15 and not any(k in nxt for k in ["这", "在", "是", "的"]):
                     break
@@ -63,6 +74,11 @@ def _truncate_at_title_end(text: str) -> str:
     for i, ch in enumerate(text):
         if ch in end_markers and i > 5:
             return text[:i+1]
+    # 如果找到"协同"这样的明确标题词，截取到那里
+    for marker in ["协同推动", "编者按", "□", "●", "■"]:
+        idx = text.find(marker)
+        if idx > 3:
+            return text[:idx].strip()
     # 没找到句号，取前60个字符
     return text[:60]
 
@@ -85,20 +101,23 @@ def extract_structured_from_pdf(filepath: str) -> dict:
     merged = _merge_adjacent_blocks(raw_blocks)
 
     # ── 主标题 ─────────────────────────────────────────────
-    # 找含"三新"且在文章区域的标题行
+    # 找"协同推动三新走进商保"作为主标题（y≈283, x=138 位置）
     title = ""
-    sidebar_keywords = ["丁云生", "最近几年", "好保险", "笔者的观点", "笔者判断"]
+    sidebar_keywords = ["丁云生", "最近几年", "好保险", "笔者的观点", "笔者判断", "2025年9月", "2026年"]
     for line in merged[:40]:
-        if "三新" in line and len(line) > 8:
-            if not any(k in line for k in sidebar_keywords):
-                # 截取干净标题
+        # 排除侧边栏内容、元信息、不以完整句子结尾的块
+        if len(line) < 10:
+            continue
+        if any(k in line for k in sidebar_keywords):
+            continue
+        # 直接匹配主标题
+        if "协同推动" in line and "三新" in line and "走进商保" in line:
+            title = _truncate_at_title_end(line.strip())
+            break
+        # 备选：含"三新"但不以句号结尾的短行（标题特征）
+        if "三新" in line and len(line) < 80 and not any(line.endswith(c) for c in "。！？"):
+            if not any(k in line for k in ["2025年", "2026年", "编者按", "丁云生"]):
                 title = _truncate_at_title_end(line.strip())
-                break
-    # 如果没找到，取 y≈280 位置的主标题行
-    if not title:
-        for line in merged:
-            if "协同推动" in line and len(line) > 5:
-                title = line.strip()
                 break
 
     # ── 副标题 ─────────────────────────────────────────────
@@ -119,7 +138,7 @@ def extract_structured_from_pdf(filepath: str) -> dict:
             date = m.group(1)
 
     # ── 关键章节（新技术/新药品/新器械 完整标题）───────────
-    # 取关键词后最多45个字符（章节标题通常不超过这个长度）
+    # 取关键词后最多120个字符（完整章节标题长度）
     key_sections = []
     seen = set()
     for line in merged:
@@ -127,7 +146,7 @@ def extract_structured_from_pdf(filepath: str) -> dict:
         for kw in ["新技术：", "新药品：", "新器械："]:
             idx = clean.find(kw)
             if idx >= 0:
-                segment = clean[idx:idx + 45]
+                segment = clean[idx:idx + 120]
                 if segment not in seen:
                     key_sections.append(segment)
                     seen.add(segment)
@@ -155,11 +174,41 @@ def extract_structured_from_pdf(filepath: str) -> dict:
     key_points = []
     for line in merged:
         stripped = line.strip()
+        if len(stripped) < 5:
+            continue
+        if any(stripped.startswith(p) for p in skip_prefixes):
+            continue
         m = re.match(r"^第[一二三四五][、，](.+)", stripped)
         if m:
             point_text = m.group(1).strip()
             if len(point_text) > 5:
                 key_points.append(stripped)
+    # 扩展合并：将连续短块合并为完整要点
+    expanded_points = []
+    for pt in key_points:
+        # 如果要点以句号结尾或较长，说明已经是完整段落
+        if pt[-1] in '。！？' and len(pt) > 40:
+            expanded_points.append(pt)
+        else:
+            # 尝试扩展：找当前要点在 merged 中的位置，合并后续块
+            idx = -1
+            for i, line in enumerate(merged):
+                if line.strip() == pt.strip():
+                    idx = i
+                    break
+            if idx >= 0:
+                # 继续向前合并最多5个相邻块
+                extended = pt
+                for k in range(idx + 1, min(idx + 6, len(merged))):
+                    nxt = merged[k].strip()
+                    if not nxt:
+                        break
+                    if nxt.startswith('第') or nxt.startswith('HPV') or nxt.startswith('该研') or nxt.startswith('一位') or nxt.startswith('这种') or nxt.startswith('鉴于'):
+                        break
+                    extended = extended + nxt
+                expanded_points.append(extended)
+            else:
+                expanded_points.append(pt)
 
     # ── 底部作者信息 ─────────────────────────────────────
     footer = ""
@@ -176,7 +225,7 @@ def extract_structured_from_pdf(filepath: str) -> dict:
         "date": date,
         "paragraphs": paragraphs[:20],
         "key_sections": key_sections[:5],
-        "key_points": key_points[:6],
+        "key_points": expanded_points[:6],
         "footer": footer,
         "full_text": raw,
         "line_count": len(raw_blocks),
