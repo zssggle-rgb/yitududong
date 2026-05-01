@@ -3,6 +3,7 @@
 支持 PDF 和 DOCX 格式校验，提供友好的错误提示。
 """
 import os
+import uuid
 from pathlib import Path
 from typing import Tuple
 
@@ -58,7 +59,6 @@ def validate_file(filename: str, size: int, mimetype: str) -> Tuple[str, str]:
     validate_mime_type(mimetype)
     
     # 生成安全文件名
-    import uuid
     ext = Path(filename).suffix.lower()
     safe_name = f"{uuid.uuid4().hex}{ext}"
     saved_path = os.path.join(config.UPLOAD_DIR, safe_name)
