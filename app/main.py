@@ -8,6 +8,8 @@ from pathlib import Path
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 import uvicorn
 
 import config
@@ -16,10 +18,50 @@ from app.extract_pdf import extract_structured_from_pdf, extract_text_from_pdf
 from app.extract_docx import extract_structured_from_docx
 from app.render import render_long_image
 
+
+class GenerateData(BaseModel):
+    """输入数据 schema，防止 OOM"""
+    title: str = Field(..., min_length=1, max_length=200)
+    subtitle: str = Field(default="", max_length=200)
+    source: str = Field(default="", max_length=100)
+    date: str = Field(default="", max_length=50)
+    paragraphs: list[str] = Field(default_factory=list, max_length=20)
+    key_points: list[str] = Field(default_factory=list, max_length=20)
+    footer: str = Field(default="", max_length=100)
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "title": "协同推动三新走进商保",
+                "subtitle": "推动健康险高质量发展系列专题",
+                "source": "中国银行保险报",
+                "date": "2025年9月1日",
+                "paragraphs": ["正文..."],
+                "key_points": ["第一条、..."],
+                "footer": "作者系..."
+            }
+        }
+    }
+
+
+MAX_PARAGRAPHS_LIMIT = 20
+MAX_KEY_POINTS_LIMIT = 20
+MAX_PARAGRAPH_CHARS = 2000  # per paragraph
+
+
 app = FastAPI(
     title="一图读懂 - 文档转长图",
     version="1.0.0",
     description="M04 模块：预览下载与前端体验",
+)
+
+# CORS middleware - allow all origins for development/QA
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # 挂载静态文件
@@ -40,6 +82,15 @@ async def index_page():
     return HTMLResponse(content=html_path.read_text(encoding="utf-8"), status_code=200)
 
 
+def _cleanup_temp_file(path: str) -> None:
+    """安全清理临时文件，忽略所有异常"""
+    try:
+        if path and os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        pass
+
+
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     """
@@ -49,6 +100,7 @@ async def upload_file(file: UploadFile = File(...)):
     - 校验失败返回友好错误提示
     成功时返回提取的文本结构（后续 M02/M03/M04 模块继续处理）
     """
+    saved_path = None
     try:
         # 读取文件大小
         content = await file.read()
@@ -73,12 +125,6 @@ async def upload_file(file: UploadFile = File(...)):
             structured = extract_structured_from_docx(saved_path)
         else:
             raise ValidationError("不支持的文件格式", code="UNSUPPORTED_FORMAT")
-
-        # 清理临时文件
-        try:
-            os.remove(saved_path)
-        except Exception:
-            pass
 
         if not structured.get("full_text"):
             raise ValidationError(
@@ -112,41 +158,35 @@ async def upload_file(file: UploadFile = File(...)):
             "error": ve.message,
             "code": ve.code,
         }, status_code=400)
+    finally:
+        # 无论成功还是异常，都要清理临时文件
+        if saved_path:
+            _cleanup_temp_file(saved_path)
 
 
 @app.post("/generate")
-async def generate_long_image(data: dict = None):
+async def generate_long_image(data: GenerateData):
     """
     生成预览长图。
-    接收 upload 阶段返回的结构化数据，渲染为 PNG。
-    返回 PNG 图片或错误信息。
+    接收结构化数据，渲染为 PNG。
+    输入验证：限制 paragraphs/key_points 数量和每段长度，防止 OOM。
     """
     try:
-        if not data:
-            return JSONResponse({
-                "success": False,
-                "error": "缺少生成数据",
-                "code": "MISSING_DATA",
-            }, status_code=400)
+        # OOM 保护：限制 paragraphs 和 key_points 的总数据量
+        paragraphs = data.paragraphs[:MAX_PARAGRAPHS_LIMIT]
+        key_points = data.key_points[:MAX_KEY_POINTS_LIMIT]
 
-        structured = data if isinstance(data, dict) else {}
-        title = structured.get("title", "")
-        if not title:
-            return JSONResponse({
-                "success": False,
-                "error": "缺少标题，无法生成预览",
-                "code": "MISSING_TITLE",
-            }, status_code=400)
+        # 每段限制字符数
+        paragraphs = [p[:MAX_PARAGRAPH_CHARS] for p in paragraphs]
 
-        # 构建渲染数据
         render_data = {
-            "title": title,
-            "subtitle": structured.get("subtitle", ""),
-            "source": structured.get("source", ""),
-            "date": structured.get("date", ""),
-            "paragraphs": structured.get("paragraphs", []),
-            "key_points": structured.get("key_points", []),
-            "footer": structured.get("footer", ""),
+            "title": data.title,
+            "subtitle": data.subtitle,
+            "source": data.source,
+            "date": data.date,
+            "paragraphs": paragraphs,
+            "key_points": key_points,
+            "footer": data.footer,
         }
 
         # 渲染 PNG
@@ -166,7 +206,8 @@ async def generate_long_image(data: dict = None):
 async def reference_extract():
     """
     参考 PDF 文本抽取演示接口（M01 内部验证用）。
-    读取 /Users/sjs/Downloads/05B20260430C_l.pdf 并返回抽取结果。
+    读取 config.REFERENCE_PDF 并返回抽取结果。
+    不暴露完整本地路径。
     """
     ref_pdf = config.REFERENCE_PDF
     if not os.path.exists(ref_pdf):
@@ -178,7 +219,7 @@ async def reference_extract():
     result = extract_structured_from_pdf(ref_pdf)
     return JSONResponse({
         "success": True,
-        "source": ref_pdf,
+        "source": "reference_pdf",  # 不暴露完整本地路径
         "module": "M01",
         "stage": "reference_extraction",
         "data": result,
