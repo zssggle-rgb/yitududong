@@ -76,7 +76,8 @@ def cleanup_old_outputs(output_dir, max_age_hours=24):
     output_path = Path(output_dir)
     if not output_path.exists():
         return
-    for f in output_path.glob("*.png"):
+    files = list(output_path.glob("*.png"))
+    for f in files:
         if f.stat().st_mtime < cutoff:
             try:
                 f.unlink()
