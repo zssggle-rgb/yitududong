@@ -23,20 +23,30 @@ SECTION_GAP = 36
 
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    """加载系统字体，优先苹方/微软雅黑"""
-    font_paths = [
+    """Load system font with cross-platform fallback chain.
+
+    Priority:
+    1. macOS: PingFang (苹方), STHeiti (黑体)
+    2. Windows: msyh (微软雅黑)
+    3. Linux: DejaVuSans, LiberationSans, FreeSans, NotoSansCJK, wqy-microhei
+    4. Final fallback: ImageFont.load_default()
+
+    Args:
+        size: font size in points
+        bold: currently unused, reserved for future bold-variant loading
+    Returns:
+        PIL FreeTypeFont instance
+    """
+    # macOS fonts
+    mac_fonts = [
         "/System/Library/Fonts/PingFang.ttc",
         "/System/Library/Fonts/STHeiti Light.ttc",
-        "/Library/Fonts/Arial.ttf",
+    ]
+    # Windows font
+    windows_fonts = [
         "C:/Windows/Fonts/msyh.ttc",
     ]
-    for path in font_paths:
-        if Path(path).exists():
-            try:
-                return ImageFont.truetype(path, size)
-            except Exception:
-                pass
-    # Linux fallback: try common system fonts
+    # Linux fonts
     linux_fonts = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
@@ -45,13 +55,18 @@ def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
         "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
     ]
-    for path in linux_fonts:
+
+    # Arial as last resort before Linux fallbacks
+    arial_font = "/Library/Fonts/Arial.ttf"
+
+    for path in mac_fonts + windows_fonts + [arial_font] + linux_fonts:
         if Path(path).exists():
             try:
                 return ImageFont.truetype(path, size)
             except Exception:
                 pass
-    # last resort: default
+
+    # Final fallback: minimal bitmap font (always available)
     return ImageFont.load_default()
 
 
