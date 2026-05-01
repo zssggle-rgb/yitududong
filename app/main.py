@@ -116,14 +116,13 @@ async def reference_extract():
     参考 PDF 文本抽取演示接口（M01 内部验证用）。
     读取 /Users/sjs/Downloads/05B20260430C_l.pdf 并返回抽取结果。
     """
-    import os
     ref_pdf = config.REFERENCE_PDF
     if not os.path.exists(ref_pdf):
         raise HTTPException(
             status_code=404,
-            detail=f"参考 PDF 不存在: {ref_pdf}"
+            detail="参考 PDF 不存在"
         )
-    
+
     result = extract_structured_from_pdf(ref_pdf)
     return JSONResponse({
         "success": True,

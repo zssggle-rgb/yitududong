@@ -177,7 +177,7 @@ def extract_structured_from_pdf(filepath: str) -> dict:
     key_points = []
     for line in merged:
         stripped = line.strip()
-        if len(stripped) < 5:
+        if not stripped or len(stripped) < 5:
             continue
         if any(stripped.startswith(p) for p in skip_prefixes):
             continue
