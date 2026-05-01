@@ -5,7 +5,7 @@ yitududong Flask 路由
 import os
 import uuid
 import datetime
-from flask import Blueprint, request, jsonify, render_template, send_file, flash, redirect, url_for
+from flask import Blueprint, request, jsonify, render_template, send_file, url_for
 from werkzeug.utils import secure_filename
 from app.parsers import parse_document
 from app.screenshot import render_html_to_screenshot, cleanup_old_outputs
