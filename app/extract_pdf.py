@@ -10,6 +10,9 @@ import config
 def extract_raw_text(filepath: str) -> str:
     """提取 PDF 文本，每个 block 为一个单元（保留块内换行），按阅读顺序排列"""
     doc = fitz.open(filepath)
+    if doc.page_count == 0:
+        doc.close()
+        return ""
     page = doc[0]
     blocks = page.get_text("blocks")
     blocks.sort(key=lambda b: (round(b[1] / 30) * 30, b[0]))
