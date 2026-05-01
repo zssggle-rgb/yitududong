@@ -36,8 +36,23 @@ def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
                 return ImageFont.truetype(path, size)
             except Exception:
                 pass
-    # fallback to default
-    return ImageFont.truetype("/System/Library/Fonts/Arial.ttf", size)
+    # Linux fallback: try common system fonts
+    linux_fonts = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+    ]
+    for path in linux_fonts:
+        if Path(path).exists():
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                pass
+    # last resort: default
+    return ImageFont.load_default()
 
 
 def _wrap_text(text: str, width: int, font: ImageFont.FreeTypeFont, draw: ImageDraw.Draw) -> list:
