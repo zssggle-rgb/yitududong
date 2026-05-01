@@ -230,6 +230,6 @@ def render_long_image(data: dict) -> bytes:
 
     # 保存到bytes
     buf = io.BytesIO()
-    img.save(buf, format="PNG", quality=95)
+    img.save(buf, format="PNG")
     buf.seek(0)
     return buf.read()
