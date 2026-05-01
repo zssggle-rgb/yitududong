@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width={{ width }}">
+<title>{{ title }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: {{ width }}px;
+    background: #ffffff;
+    font-family: "PingFang SC", "Microsoft YaHei", "Heiti SC", sans-serif;
+    color: #202124;
+  }
+  .card-container {
+    width: {{ width }}px;
+    padding: 0 0 40px 0;
+    background: #ffffff;
+  }
+  /* 标题区 */
+  .header {
+    width: 100%;
+    background: linear-gradient(135deg, #1a73e8 0%, #1967d2 100%);
+    padding: 48px 60px 40px 60px;
+    text-align: center;
+  }
+  .header-title {
+    color: #ffffff;
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .header-sub {
+    margin-top: 16px;
+    color: rgba(255,255,255,0.85);
+    font-size: 20px;
+  }
+  /* 摘要区 */
+  .summary-section {
+    padding: 36px 60px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e8eaed;
+  }
+  .section-label {
+    display: inline-block;
+    background: #e8f0fe;
+    color: #1967d2;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 6px 20px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .summary-text {
+    font-size: 26px;
+    line-height: 1.8;
+    color: #3c4043;
+    max-width: 960px;
+  }
+  /* 要点卡片区 */
+  .points-section {
+    padding: 36px 60px;
+  }
+  .points-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .point-card {
+    background: linear-gradient(135deg, #e8f0fe 0%, #d2e3fc 100%);
+    border-left: 5px solid #1a73e8;
+    border-radius: 0 12px 12px 0;
+    padding: 24px 32px;
+    box-shadow: 0 2px 8px rgba(26,115,232,0.08);
+  }
+  .point-card:hover {
+    box-shadow: 0 4px 16px rgba(26,115,232,0.15);
+  }
+  .point-text {
+    font-size: 24px;
+    line-height: 1.7;
+    color: #202124;
+  }
+  .point-num {
+    display: inline-block;
+    background: #1a73e8;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    border-radius: 50%;
+    margin-right: 16px;
+    vertical-align: middle;
+  }
+  /* 底部说明 */
+  .footer-section {
+    padding: 24px 60px;
+    background: #f1f3f4;
+    border-top: 2px solid #e8eaed;
+  }
+  .footer-text {
+    font-size: 18px;
+    color: #5f6368;
+    text-align: center;
+  }
+  .footer-source {
+    margin-top: 8px;
+    font-size: 16px;
+    color: #80868b;
+    text-align: center;
+  }
+  /* 装饰元素 */
+  .divider {
+    width: 80px;
+    height: 4px;
+    background: #1a73e8;
+    border-radius: 2px;
+    margin: 0 auto;
+  }
+  /* 微信分享提示 */
+  .share-hint {
+    text-align: center;
+    padding: 16px;
+    color: #9aa0a6;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+<div class="card-container">
+
+  <!-- 标题区 -->
+  <div class="header">
+    <div class="header-title">{{ title }}</div>
+    <div class="divider" style="margin-top: 20px;"></div>
+  </div>
+
+  <!-- 摘要区 -->
+  {% if summary %}
+  <div class="summary-section">
+    <span class="section-label">📋 核心摘要</span>
+    <p class="summary-text">{{ summary }}</p>
+  </div>
+  {% endif %}
+
+  <!-- 分条要点卡片 -->
+  {% if points %}
+  <div class="points-section">
+    <span class="section-label" style="display:block;text-align:center;margin-bottom:24px;">📌 政策要点</span>
+    <div class="points-grid">
+      {% for point in points %}
+      <div class="point-card">
+        <span class="point-num">{{ loop.index }}</span>
+        <span class="point-text">{{ point }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 底部说明 -->
+  <div class="footer-section">
+    <div class="divider" style="margin-bottom: 16px;"></div>
+    {% if footer %}
+    <p class="footer-text">{{ footer }}</p>
+    {% endif %}
+    <p class="footer-source">一图读懂 · yitududong · {{ timestamp }}</p>
+  </div>
+
+</div>
+</body>
+</html>
