@@ -12,3 +12,4 @@ output_imgs/
 .coverage
 htmlcov/
 openTask
+.gstack/
