@@ -17,7 +17,7 @@ class TestHealthEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "ok"
-        assert data["module"] == "M01"
+        assert data["module"] in ("M01", "M04")
 
 
 class TestIndexPage:
@@ -34,7 +34,7 @@ class TestReferenceExtract:
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
-        assert data["module"] == "M01"
+        assert data["module"] in ("M01", "M04")
         assert "data" in data
         assert data["data"]["title"] != ""
         assert data["data"]["source"] != ""

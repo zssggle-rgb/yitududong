@@ -51,19 +51,20 @@
 
     /* Main container */
     .container {
-      max-width: 680px;
+      max-width: 720px;
       margin: 32px auto;
       padding: 0 20px;
       flex: 1;
     }
 
-    /* Upload card */
+    /* Card */
     .card {
       background: var(--white);
       border-radius: var(--radius);
       border: 1px solid var(--border);
       padding: 32px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
     }
     .card-title {
       font-size: 1.1rem;
@@ -118,7 +119,7 @@
       margin-top: 8px;
     }
 
-    /* Supported formats */
+    /* Formats badge */
     .formats {
       display: flex;
       gap: 12px;
@@ -134,10 +135,29 @@
       font-weight: 600;
     }
 
-    /* Submit button */
+    /* Selected file info */
+    .selected-file {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: var(--primary-bg);
+      border-radius: 6px;
+      font-size: 0.88rem;
+      color: var(--primary);
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .selected-file.show { display: flex; }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
     .submit-btn {
-      width: 100%;
-      margin-top: 20px;
+      flex: 1;
       padding: 14px;
       background: linear-gradient(135deg, var(--primary), var(--primary-light));
       color: var(--white);
@@ -156,19 +176,43 @@
       cursor: not-allowed;
     }
 
-    /* Selected file info */
-    .selected-file {
-      margin-top: 14px;
-      padding: 10px 14px;
-      background: var(--primary-bg);
-      border-radius: 6px;
-      font-size: 0.88rem;
-      color: var(--primary);
-      display: none;
-      align-items: center;
-      gap: 8px;
+    .gen-btn {
+      flex: 1;
+      padding: 14px;
+      background: linear-gradient(135deg, #2e7d32, #388e3c);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 1px;
     }
-    .selected-file.show { display: flex; }
+    .gen-btn:hover { opacity: 0.9; }
+    .gen-btn:active { transform: scale(0.99); }
+    .gen-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .download-btn {
+      flex: 1;
+      padding: 14px;
+      background: linear-gradient(135deg, #c62828, #e53935);
+      color: var(--white);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 1px;
+      display: none;
+    }
+    .download-btn.show { display: block; }
+    .download-btn:hover { opacity: 0.9; }
+    .download-btn:active { transform: scale(0.99); }
 
     /* Status message */
     .status-msg {
@@ -245,16 +289,59 @@
       border-radius: 0 4px 4px 0;
       font-size: 0.88rem;
     }
-    .next-hint {
-      margin-top: 14px;
-      padding: 12px;
-      background: #fff8e6;
-      border: 1px solid #f0d58c;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      color: #7d5a00;
+
+    /* Preview area */
+    .preview-area {
+      margin-top: 24px;
+      display: none;
+    }
+    .preview-area.show { display: block; }
+    .preview-area h3 {
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #2e7d32;
+    }
+    .preview-container {
+      background: #f0f0f0;
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .preview-container img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .preview-hint {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Reference demo */
+    .ref-demo {
+      margin-top: 16px;
       text-align: center;
     }
+    .ref-demo-btn {
+      padding: 8px 20px;
+      background: #fdb813;
+      color: #7d5a00;
+      border: none;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .ref-demo-btn:hover { opacity: 0.85; }
 
     /* Footer */
     .footer {
@@ -275,6 +362,8 @@
   </div>
 
   <div class="container">
+
+    <!-- Upload card -->
     <div class="card">
       <div class="card-title">上传文档</div>
       <div class="card-sub">支持 PDF 和 Word 格式，文件大小不超过 20MB</div>
@@ -299,16 +388,24 @@
           <span id="fileName">未选择文件</span>
         </div>
 
-        <button type="submit" class="submit-btn" id="submitBtn">
-          上传并提取内容
-        </button>
+        <div class="btn-row">
+          <button type="submit" class="submit-btn" id="submitBtn">
+            上传并提取内容
+          </button>
+          <button type="button" class="gen-btn" id="genBtn" disabled>
+            生成预览
+          </button>
+          <a id="downloadLink" class="download-btn" download="yitududong.png">
+            下载 PNG
+          </a>
+        </div>
       </form>
 
       <div class="status-msg" id="statusMsg"></div>
 
       <!-- Extracted content preview -->
       <div class="extracted-preview" id="extractedPreview">
-        <h3>✅ 内容提取成功（M01 阶段）</h3>
+        <h3>✅ 内容提取成功</h3>
         <div class="extracted-item">
           <div class="extracted-label">标题</div>
           <div class="extracted-value title" id="previewTitle">-</div>
@@ -329,27 +426,58 @@
           <div class="extracted-label">来源</div>
           <div class="extracted-value" id="previewSource">-</div>
         </div>
-        <div class="next-hint">
-          🎯 M01 阶段完成，后续 M02 模块将继续进行结构化摘要生成和长图渲染。
-        </div>
+      </div>
+
+      <!-- Reference demo button -->
+      <div class="ref-demo">
+        <button class="ref-demo-btn" id="refDemoBtn">🎯 一键生成演示（使用参考PDF）</button>
       </div>
     </div>
+
+    <!-- Preview card -->
+    <div class="card" id="previewCard" style="display:none;">
+      <div class="card-title">📸 生成预览</div>
+      <div class="preview-container" id="previewContainer">
+        <img id="previewImg" src="" alt="长图预览">
+      </div>
+      <div class="preview-hint" id="previewHint">点击「下载 PNG」按钮保存图片</div>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="gen-btn" id="regenBtn" style="flex:1;">🔄 重新生成</button>
+        <a id="downloadLink2" class="download-btn show" style="flex:1; text-align:center; line-height:48px;" download="yitududong.png">
+          下载 PNG
+        </a>
+      </div>
+    </div>
+
   </div>
 
   <div class="footer">
-    yitududong · M01 文档接入与上传模块 · REQ-20260501-001
+    yitududong · M04 预览下载与前端体验模块 · REQ-20260501-001
   </div>
 
   <script>
+    // ── State ──────────────────────────────────────────────
+    let extractedData = null;
+    let currentPngUrl = null;
+
+    // ── Elements ────────────────────────────────────────────
     const fileInput = document.getElementById('fileInput');
     const uploadZone = document.getElementById('uploadZone');
     const selectedFile = document.getElementById('selectedFile');
     const fileName = document.getElementById('fileName');
     const submitBtn = document.getElementById('submitBtn');
+    const genBtn = document.getElementById('genBtn');
+    const downloadLink = document.getElementById('downloadLink');
     const statusMsg = document.getElementById('statusMsg');
     const extractedPreview = document.getElementById('extractedPreview');
+    const previewCard = document.getElementById('previewCard');
+    const previewImg = document.getElementById('previewImg');
+    const previewHint = document.getElementById('previewHint');
+    const downloadLink2 = document.getElementById('downloadLink2');
+    const regenBtn = document.getElementById('regenBtn');
+    const refDemoBtn = document.getElementById('refDemoBtn');
 
-    // Drag-over effect
+    // ── Drag-over ──────────────────────────────────────────
     uploadZone.addEventListener('dragover', () => uploadZone.classList.add('drag-over'));
     uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
     uploadZone.addEventListener('drop', e => {
@@ -372,6 +500,9 @@
       statusMsg.className = 'status-msg';
       statusMsg.style.display = 'none';
       extractedPreview.classList.remove('show');
+      previewCard.style.display = 'none';
+      extractedData = null;
+      genBtn.disabled = true;
     }
 
     function showStatus(msg, type) {
@@ -380,6 +511,7 @@
       statusMsg.style.display = 'block';
     }
 
+    // ── Upload ─────────────────────────────────────────────
     document.getElementById('uploadForm').addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -396,10 +528,6 @@
         return;
       }
 
-      const allowedTypes = [
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      ];
       const ext = file.name.split('.').pop().toLowerCase();
       if (!['pdf', 'docx'].includes(ext)) {
         showStatus('仅支持 PDF、DOCX 格式', 'error');
@@ -410,8 +538,10 @@
       formData.append('file', file);
 
       submitBtn.disabled = true;
+      genBtn.disabled = true;
       showStatus('正在上传并提取内容，请稍候…', 'loading');
       extractedPreview.classList.remove('show');
+      previewCard.style.display = 'none';
 
       try {
         const resp = await fetch('/upload', {
@@ -429,20 +559,19 @@
 
         showStatus('✅ 上传成功，内容已提取！', 'success');
         submitBtn.disabled = false;
+        extractedData = data.data;
 
         // 填充预览
-        document.getElementById('previewTitle').textContent =
-          data.data.title || '-';
-        document.getElementById('previewSubtitle').textContent =
-          data.data.subtitle || '-';
+        document.getElementById('previewTitle').textContent = extractedData.title || '-';
+        document.getElementById('previewSubtitle').textContent = extractedData.subtitle || '-';
         document.getElementById('previewParagraphs').textContent =
-          (data.data.paragraphs || []).slice(0, 3).join('\n') || '-';
+          (extractedData.paragraphs || []).slice(0, 3).join('\n') || '-';
         document.getElementById('previewSource').textContent =
-          data.data.source || '-';
+          [extractedData.source, extractedData.date].filter(Boolean).join(' | ') || '-';
 
         const pointsEl = document.getElementById('previewPoints');
         pointsEl.innerHTML = '';
-        const points = data.data.key_points || [];
+        const points = extractedData.key_points || [];
         if (points.length) {
           points.forEach(pt => {
             const li = document.createElement('li');
@@ -454,10 +583,98 @@
         }
 
         extractedPreview.classList.add('show');
+        genBtn.disabled = false;
 
       } catch (err) {
         showStatus(`网络错误：${err.message}`, 'error');
         submitBtn.disabled = false;
+      }
+    });
+
+    // ── Generate Preview ────────────────────────────────────
+    async function generatePreview(useRefPdf = false) {
+      let payload;
+
+      if (useRefPdf) {
+        // Use reference PDF: call /reference-generate directly
+        showStatus('正在从参考 PDF 生成预览…', 'loading');
+        try {
+          const resp = await fetch('/reference-generate');
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || '生成失败');
+          }
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          showPreview(url, blob);
+          showStatus('✅ 参考 PDF 预览生成成功！', 'success');
+          return;
+        } catch (err) {
+          showStatus(`❌ 生成失败：${err.message}`, 'error');
+          return;
+        }
+      }
+
+      if (!extractedData) {
+        showStatus('请先上传文件并提取内容', 'error');
+        return;
+      }
+
+      showStatus('正在生成预览，请稍候…', 'loading');
+      genBtn.disabled = true;
+
+      try {
+        const resp = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(extractedData),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || '生成失败');
+        }
+
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        showPreview(url, blob);
+        showStatus('✅ 预览生成成功！', 'success');
+
+      } catch (err) {
+        showStatus(`❌ 生成失败：${err.message}`, 'error');
+      } finally {
+        genBtn.disabled = false;
+      }
+    }
+
+    function showPreview(url, blob) {
+      if (currentPngUrl) {
+        URL.revokeObjectURL(currentPngUrl);
+      }
+      currentPngUrl = url;
+
+      previewImg.src = url;
+      previewCard.style.display = 'block';
+
+      // Set download links
+      downloadLink.href = url;
+      downloadLink.style.display = 'block';
+      downloadLink2.href = url;
+      downloadLink2.style.display = 'block';
+
+      // Scroll to preview
+      previewCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    genBtn.addEventListener('click', () => generatePreview(false));
+    regenBtn.addEventListener('click', () => generatePreview(false));
+    refDemoBtn.addEventListener('click', () => generatePreview(true);
+
+    // ── Download ────────────────────────────────────────────
+    downloadLink.addEventListener('click', (e) => {
+      if (!currentPngUrl) {
+        e.preventDefault();
+        showStatus('请先生成预览', 'error');
       }
     });
   </script>
