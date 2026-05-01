@@ -1,12 +1,14 @@
 """
 Tests for app/main.py - M01 FastAPI 端点
 """
+import os
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
-
 client = TestClient(app)
+REF_PDF = "/Users/sjs/Downloads/05B20260430C_l.pdf"
+has_ref_pdf = os.path.exists(REF_PDF)
 
 
 class TestHealthEndpoint:
@@ -26,6 +28,7 @@ class TestIndexPage:
 
 
 class TestReferenceExtract:
+    @pytest.mark.skipif(not has_ref_pdf, reason="Reference PDF not available in CI environment")
     def test_reference_extract_returns_structure(self):
         resp = client.get("/reference-extract")
         assert resp.status_code == 200
@@ -36,15 +39,26 @@ class TestReferenceExtract:
         assert data["data"]["title"] != ""
         assert data["data"]["source"] != ""
 
+    @pytest.mark.skipif(not has_ref_pdf, reason="Reference PDF not available in CI environment")
     def test_reference_extract_has_key_sections(self):
         resp = client.get("/reference-extract")
         data = resp.json()
         assert len(data["data"]["key_sections"]) >= 1
 
+    @pytest.mark.skipif(not has_ref_pdf, reason="Reference PDF not available in CI environment")
     def test_reference_extract_has_key_points(self):
         resp = client.get("/reference-extract")
         data = resp.json()
         assert len(data["data"]["key_points"]) >= 1
+
+    def test_reference_extract_returns_404_when_pdf_missing(self):
+        """When reference PDF is not available, endpoint returns 404"""
+        resp = client.get("/reference-extract")
+        # If ref PDF exists, we get 200; if not, we get 404
+        if has_ref_pdf:
+            assert resp.status_code == 200
+        else:
+            assert resp.status_code == 404
 
 
 class TestUploadValidation:
