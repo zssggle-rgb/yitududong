@@ -246,8 +246,8 @@ async def reference_generate():
         "subtitle": structured.get("subtitle", ""),
         "source": structured.get("source", ""),
         "date": structured.get("date", ""),
-        "paragraphs": structured.get("paragraphs", [])[:5],
-        "key_points": structured.get("key_points", [])[:6],
+        "paragraphs": structured.get("paragraphs", [])[:10],
+        "key_points": structured.get("key_points", [])[:8],
         "footer": structured.get("footer", ""),
     }
 

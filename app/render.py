@@ -119,7 +119,7 @@ def render_long_image(data: dict) -> bytes:
 
     # 预计算段落文本总高度
     paragraph_lines = []
-    for para in (data.get("paragraphs", []) or [])[:5]:
+    for para in (data.get("paragraphs", []) or [])[:15]:
         wrapped = _wrap_text(para, width=44, font=font_body, draw=None)
         paragraph_lines.extend(wrapped)
 
@@ -173,7 +173,7 @@ def render_long_image(data: dict) -> bytes:
     y += 24
 
     if paragraph_lines:
-        for line in paragraph_lines[:8]:
+        for line in paragraph_lines:
             if line:
                 draw.text((MARGIN_H, y), line, fill=TEXT_DARK, font=font_body)
                 y += 56
